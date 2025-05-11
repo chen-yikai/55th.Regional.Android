@@ -152,6 +152,7 @@ fun HomeScreen() {
                         .clickable {
                             PlaybackService.setIndex(id)
                             nav.navigate(Screens.Player.name)
+
                         },
                     colors = CardDefaults.cardColors(
                         containerColor = Color.White

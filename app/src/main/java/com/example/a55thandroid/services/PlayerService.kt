@@ -111,8 +111,8 @@ class PlaybackService : MediaSessionService() {
                 )
             }
         }
-        player.prepare()
-        player.play()
+//        player.prepare()
+//        player.play()
     }
 
     override fun onCreate() {
@@ -146,7 +146,7 @@ class PlaybackService : MediaSessionService() {
                 _playerState.value = _playerState.value.copy(
                     currentPosition = player.currentPosition
                 )
-                delay(500)
+                delay(100)
             }
         }
     }
