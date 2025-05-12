@@ -16,14 +16,15 @@ import kotlin.jvm.java
 const val host = "https://skills-music-api-v3.eliaschen.dev"
 const val apiKey = "kitty-secret-key"
 
+val client = OkHttpClient()
+val gson = Gson()
+
 suspend fun fetchMusicList(search: String = "", sort: String = ""): List<Sounds> {
     return withContext(Dispatchers.IO) {
-        val client = OkHttpClient()
-        val gson = Gson()
         val req = Request.Builder()
             .url("$host/sounds")
             .addHeader("X-API-Key", apiKey)
-            .addHeader("filter","date")
+            .addHeader("filter", "date")
             .addHeader("search", search)
             .addHeader("sort", sort)
             .build()
@@ -48,8 +49,6 @@ suspend fun fetchMusicList(search: String = "", sort: String = ""): List<Sounds>
 
 suspend fun fetchAlarm(): List<Alarm> {
     return withContext(Dispatchers.IO) {
-        val client = OkHttpClient()
-        val gson = Gson()
         val req = Request.Builder()
             .url("$host/alarms")
             .addHeader("X-API-Key", apiKey)
@@ -64,10 +63,76 @@ suspend fun fetchAlarm(): List<Alarm> {
 
 suspend fun toggleAlarm(id: Int) {
     withContext(Dispatchers.IO) {
-        val client = OkHttpClient()
         val req = Request.Builder().patch("".toRequestBody())
             .addHeader("X-API-Key", apiKey)
             .url("$host/alarms/${id}/toggle").build()
+        client.newCall(req).execute()
+    }
+}
+
+
+suspend fun updateAlarm(
+    id: Int,
+    soundId: Int,
+    soundName: String,
+    alarmTime: String,
+    isActive: Boolean
+) {
+    withContext(Dispatchers.IO) {
+        val now = alarmTime
+
+        val json = gson.toJson(
+            mapOf(
+                "id" to id,
+                "apiKey" to apiKey,
+                "soundId" to soundId,
+                "soundName" to soundName,
+                "alarmTime" to now,
+                "isActive" to isActive,
+                "createdAt" to now,
+                "updatedAt" to now
+            )
+        )
+
+        Log.i("updateAlarm", "json: $json")
+
+        val req = Request.Builder()
+            .url("$host/alarms/$id")
+            .put(json.toRequestBody())
+            .addHeader("X-API-Key", apiKey)
+            .build()
+
+        client.newCall(req).execute()
+    }
+}
+
+suspend fun deleteAlarm(id: Int) {
+    withContext(Dispatchers.IO) {
+        val req = Request.Builder()
+            .delete()
+            .url("$host/alarms/$id")
+            .addHeader("X-API-Key", apiKey)
+            .build()
+        client.newCall(req).execute()
+    }
+}
+
+suspend fun createAlarm(soundId: Int, soundName: String, alarmTime: String) {
+    withContext(Dispatchers.IO) {
+        val json = gson.toJson(
+            mapOf(
+                "soundId" to soundId,
+                "soundName" to soundName,
+                "alarmTime" to alarmTime,
+            )
+        )
+
+        val req = Request.Builder()
+            .post(json.toRequestBody())
+            .addHeader("X-API-Key", apiKey)
+            .url("$host/alarms")
+            .build()
+
         client.newCall(req).execute()
     }
 }

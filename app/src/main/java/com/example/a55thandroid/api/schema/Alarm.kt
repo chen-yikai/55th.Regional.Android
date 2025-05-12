@@ -1,7 +1,10 @@
 package com.example.a55thandroid.api.schema
 
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
+import java.time.LocalDateTime
+import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
@@ -16,9 +19,26 @@ data class Alarm(
 
     @RequiresApi(Build.VERSION_CODES.O)
     fun time(): String {
-        val zonedDateTime = ZonedDateTime.parse(alarmTime)
-        val formatter = DateTimeFormatter.ofPattern("hh:mm a")
+        fun isoToHourAndSecond(isoTime: String): Pair<Int, Int> {
+            val zonedDateTime = ZonedDateTime.parse(isoTime, DateTimeFormatter.ISO_ZONED_DATE_TIME)
+            return Pair(zonedDateTime.hour, zonedDateTime.minute)
+        }
 
-        return zonedDateTime.format(formatter)
+        val (hour, minutes) = isoToHourAndSecond(alarmTime)
+        return String.format("%02d:%02d", hour, minutes)
     }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+fun hourAndMinuteToIso(hour: Int, minute: Int, date: LocalDateTime = LocalDateTime.now()): String {
+    require(hour in 0..23) { "Hour must be between 0 and 23" }
+    require(minute in 0..59) { "Minute must be between 0 and 59" }
+
+    val dateTime = date.withHour(hour).withMinute(minute).withSecond(0).withNano(0)
+    val zonedDateTime = dateTime.atZone(ZoneId.of("UTC"))
+    Log.i(
+        "Alarm Change Time",
+        "hourAndMinuteToIso: ${zonedDateTime.format(DateTimeFormatter.ISO_ZONED_DATE_TIME)}"
+    )
+    return zonedDateTime.format(DateTimeFormatter.ISO_ZONED_DATE_TIME)
 }

@@ -36,24 +36,20 @@ import com.example.a55thandroid.TitleText
 import com.example.a55thandroid.api.fetchAlarm
 import com.example.a55thandroid.api.schema.Alarm
 import com.example.a55thandroid.api.toggleAlarm
+import kotlinx.coroutines.handleCoroutineException
 import kotlinx.coroutines.launch
-
-data class Nav(
-    val name: String,
-    val route: String
-)
-
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AlarmScreen() {
     var alarmList = remember { mutableStateListOf<Alarm>() }
     var alarmLoading by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
 
     suspend fun getAlarmsList() {
+        alarmLoading = true
         alarmList.clear()
         alarmList.addAll(fetchAlarm())
+        alarmLoading = false
     }
 
     LaunchedEffect(Unit) {
@@ -90,6 +86,12 @@ fun AlarmScreen() {
         }
         LazyColumn {
             items(alarmList) { items ->
+                var checked by remember { mutableStateOf(items.isActive()) }
+
+                LaunchedEffect(checked) {
+                    if (items.isActive() != checked) toggleAlarm(items.id)
+                }
+
                 Card(
                     modifier = Modifier
                         .padding(vertical = 5.dp)
@@ -110,11 +112,8 @@ fun AlarmScreen() {
                             Text(items.soundName, color = Color.Gray, fontSize = 15.sp)
                         }
                         Spacer(Modifier.weight(1f))
-                        Switch(checked = items.isActive(), onCheckedChange = {
-                            scope.launch {
-                                toggleAlarm(items.id)
-                                getAlarmsList()
-                            }
+                        Switch(checked = checked, onCheckedChange = {
+                            checked = !checked
                         })
                     }
                 }

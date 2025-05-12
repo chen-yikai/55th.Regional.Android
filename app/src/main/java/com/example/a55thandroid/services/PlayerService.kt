@@ -22,8 +22,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import androidx.core.net.toUri
+import androidx.glance.appwidget.updateAll
+import androidx.media3.common.PlaybackException
 import com.example.a55thandroid.api.host
+import com.example.a55thandroid.services.PlaybackService
+import com.example.a55thandroid.widget.Glance
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 
 data class PlayerState(
@@ -31,7 +36,7 @@ data class PlayerState(
     var duration: Long = 1000L,
     var isPlaying: Boolean = false,
     var volume: Float = 1.0f,
-    var currentIndex: Int = 0,
+    var currentIndex: Int = -0,
     var repeatMode: Int = Player.REPEAT_MODE_OFF,
     var metadata: MediaMetadata = MediaMetadata.Builder().build(),
     var isStarted: Boolean = false,
@@ -68,29 +73,13 @@ class PlaybackService : MediaSessionService() {
             }
         }
 
-        fun playMediaById(mediaId: String) {
-            playerInstance?.let { player ->
-                val index = player.mediaItemCount
-                    .takeIf { it > 0 }
-                    ?.let { count ->
-                        (0 until count).find { player.getMediaItemAt(it).mediaId == mediaId }
-                    }
-                if (index != null) {
-                    player.seekTo(index, 0)
-                    player.prepare()
-                    player.play()
-                } else {
-                    Log.i("Playback Service", "No Media id found")
-                }
-            }
-        }
-
         fun seekTo(position: Float) {
             playerInstance?.seekTo(position.toLong())
         }
 
         fun toggle() =
             if (_playerState.value.isPlaying) playerInstance?.pause() else playerInstance?.play()
+
 
         fun next() = playerInstance?.seekToNextMediaItem()
 
@@ -111,12 +100,11 @@ class PlaybackService : MediaSessionService() {
                 )
             }
         }
-//        player.prepare()
-//        player.play()
     }
 
     override fun onCreate() {
         super.onCreate()
+        _playerState.value = _playerState.value.copy(isStarted = false)
         player = ExoPlayer.Builder(this).build()
         player.repeatMode = Player.REPEAT_MODE_ALL
         initSounds()
@@ -132,7 +120,15 @@ class PlaybackService : MediaSessionService() {
                     metadata = player.mediaMetadata
                 )
                 updateCurrentPosition()
+                serviceScope.launch {
+                    Glance().updateAll(this@PlaybackService)
+                }
                 super.onEvents(player, events)
+            }
+
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                _playerState.update { it.copy(isStarted = true) }
+                super.onPlaybackStateChanged(playbackState)
             }
         })
         mediaSession = MediaSession.Builder(this, player).build()
@@ -166,7 +162,7 @@ class PlaybackService : MediaSessionService() {
         super.onStartCommand(intent, flags, startId)
         if (!isForegroundStarted) {
             val notification = createNotification()
-            startForeground(1, notification)
+            startForeground(4, notification)
             isForegroundStarted = true
         }
         return START_STICKY
@@ -186,10 +182,10 @@ class PlaybackService : MediaSessionService() {
     }
 
     private fun createNotification(): Notification {
-        return NotificationCompat.Builder(this, "media_channel")
+        return NotificationCompat.Builder(this, player_channel)
             .setSmallIcon(R.drawable.ic_media_play)
-            .setContentTitle("title")
-            .setContentText("text")
+            .setContentTitle("Media Channel Start")
+            .setContentText("Running...")
             .setOngoing(true)
             .build()
     }

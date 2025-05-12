@@ -1,5 +1,6 @@
 package com.example.a55thandroid.screens
 
+import android.app.Dialog
 import android.content.Context
 import android.media.AudioManager
 import android.os.Build
@@ -10,7 +11,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -29,12 +29,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -48,10 +51,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCompositionContext
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -60,22 +63,25 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontVariation.Settings
-import androidx.compose.ui.unit.max
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import androidx.media3.common.audio.AudioManagerCompat.getStreamMaxVolume
 import com.example.a55thandroid.LocaleNavController
 import com.example.a55thandroid.NetworkImage
 import com.example.a55thandroid.services.PlaybackService
 import com.example.a55thandroid.R
 import com.example.a55thandroid.Screens
 import com.example.a55thandroid.TitleText
+import com.example.a55thandroid.api.createAlarm
+import com.example.a55thandroid.api.deleteAlarm
 import com.example.a55thandroid.api.fetchAlarm
 import com.example.a55thandroid.api.schema.Alarm
+import com.example.a55thandroid.api.schema.hourAndMinuteToIso
 import com.example.a55thandroid.api.toggleAlarm
+import com.example.a55thandroid.api.updateAlarm
 import com.example.a55thandroid.services.durationFormatter
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -118,13 +124,14 @@ fun PlayerScreen() {
                 Spacer(Modifier.height(20.dp))
                 PlayerController()
                 Spacer(Modifier.height(30.dp))
-                AlarmController()
+                key(player.currentIndex) {
+                    AlarmController()
+                }
             }
         }
         SystemVolumeController()
     }
 }
-
 
 @Composable
 fun SystemVolumeController() {
@@ -154,6 +161,46 @@ fun SystemVolumeController() {
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CreateAlarmDialog(dismiss: () -> Unit, update: () -> Unit) {
+    var timePickerState = rememberTimePickerState()
+    val player by PlaybackService.playerState.collectAsState()
+    val scope = rememberCoroutineScope()
+
+    Dialog(onDismissRequest = dismiss) {
+        Column(
+            Modifier
+                .clip(RoundedCornerShape(20.dp))
+                .background(MaterialTheme.colorScheme.background)
+                .padding(20.dp)
+        ) {
+            TimePicker(timePickerState)
+            Spacer(Modifier.height(10.dp))
+            Row(Modifier.fillMaxWidth()) {
+                OutlinedButton(onClick = dismiss, modifier = Modifier.weight(1f)) {
+                    Text("取消")
+                }
+                Spacer(Modifier.width(10.dp))
+                Button(onClick = {
+                    scope.launch {
+                        createAlarm(
+                            player.currentIndex + 1,
+                            player.metadata.title.toString(),
+                            hourAndMinuteToIso(timePickerState.hour, timePickerState.minute)
+                        )
+                    }
+                    update()
+                    dismiss()
+                }, modifier = Modifier.weight(1f)) {
+                    Text("確定")
+                }
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -177,23 +224,19 @@ fun AlarmController() {
         }
     }
 
-    if (showPicker)
-        Dialog(onDismissRequest = { showPicker = false }) {
-            Column(
-                Modifier
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(MaterialTheme.colorScheme.background)
-                    .padding(20.dp)
-            ) {
-                TimePicker(state = timePickerState)
-                Spacer(Modifier.height(10.dp))
-
-            }
-        }
 
     Column {
         AnimatedVisibility(alarmList.isNotEmpty()) {
             Card {
+                var showCreateAlarmDialog by remember { mutableStateOf(false) }
+
+                if (showCreateAlarmDialog) CreateAlarmDialog(
+                    { showCreateAlarmDialog = false },
+                    {
+                        scope.launch {
+                            getAlarmsList()
+                        }
+                    })
                 Column(
                     Modifier
                         .heightIn(max = 80.dp)
@@ -205,14 +248,74 @@ fun AlarmController() {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text("提醒通知")
-                        IconButton(onClick = {}) {
+                        IconButton(onClick = {
+                            showCreateAlarmDialog = true
+                        }) {
                             Icon(Icons.Default.Add, contentDescription = null)
                         }
                     }
                 }
                 LazyColumn(Modifier) {
                     items(alarmList) { items ->
-                        if (items.soundId == player.currentIndex + 1)
+                        var checked by remember { mutableStateOf(items.isActive()) }
+                        var updateId by remember { mutableIntStateOf(0) }
+
+                        LaunchedEffect(checked) {
+                            if (items.isActive() != checked) toggleAlarm(items.id)
+                        }
+
+                        if (showPicker && items.id == updateId)
+                            Dialog(onDismissRequest = { showPicker = false }) {
+                                Column(
+                                    Modifier
+                                        .clip(RoundedCornerShape(20.dp))
+                                        .background(MaterialTheme.colorScheme.background)
+                                        .padding(20.dp)
+                                ) {
+                                    TimePicker(state = timePickerState)
+                                    Spacer(Modifier.height(10.dp))
+                                    Row(Modifier.fillMaxWidth()) {
+                                        Button(onClick = {
+                                            scope.launch {
+                                                val date = LocalDateTime.of(2025, 5, 11, 0, 0)
+                                                val formatedDate = hourAndMinuteToIso(
+                                                    timePickerState.hour,
+                                                    timePickerState.minute,
+                                                    date
+                                                )
+
+                                                updateAlarm(
+                                                    items.id,
+                                                    items.soundId,
+                                                    items.soundName,
+                                                    formatedDate,
+                                                    items.isActive()
+                                                )
+                                                getAlarmsList()
+                                            }
+                                            showPicker = false
+                                        }, modifier = Modifier.weight(3f)) { Text("確定") }
+                                        Spacer(Modifier.width(10.dp))
+                                        FilledTonalButton(
+                                            onClick = {
+                                                scope.launch {
+                                                    deleteAlarm(items.id)
+                                                    getAlarmsList()
+                                                }
+                                                showPicker = false
+                                            },
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            Icon(
+                                                painter = painterResource(
+                                                    R.drawable.delete
+                                                ), contentDescription = ""
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        if (items.soundId == player.currentIndex + 1) {
                             Card(
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.background),
                                 modifier = Modifier
@@ -220,6 +323,7 @@ fun AlarmController() {
                                     .padding(horizontal = 10.dp)
                                     .clickable {
                                         showPicker = true
+                                        updateId = items.id
                                     }
                             ) {
                                 Row(
@@ -235,14 +339,12 @@ fun AlarmController() {
                                         Text(items.time(), fontSize = 20.sp)
                                     }
                                     Spacer(Modifier.weight(1f))
-                                    Switch(checked = items.isActive(), onCheckedChange = {
-                                        scope.launch {
-                                            toggleAlarm(items.id)
-                                            getAlarmsList()
-                                        }
+                                    Switch(checked = checked, onCheckedChange = {
+                                        checked = !checked
                                     })
                                 }
                             }
+                        }
                     }
                 }
             }
@@ -250,6 +352,7 @@ fun AlarmController() {
     }
 }
 
+@Preview(showBackground = true)
 @Composable
 fun PlayerController() {
     val player by PlaybackService.playerState.collectAsState()
@@ -288,6 +391,7 @@ fun PlayerController() {
     }
 }
 
+@Preview(showBackground = true)
 @Composable
 fun PlayerSeekController() {
     val player by PlaybackService.playerState.collectAsState()
