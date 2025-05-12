@@ -4,10 +4,17 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.glance.GlanceId
@@ -24,8 +31,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceModifier
+import androidx.glance.GlanceTheme
 import androidx.glance.Image
 import androidx.glance.ImageProvider
+import androidx.glance.LocalContext
 import androidx.glance.appwidget.CircularProgressIndicator
 import androidx.glance.appwidget.components.CircleIconButton
 import androidx.glance.appwidget.provideContent
@@ -42,6 +51,7 @@ import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.size
 import androidx.glance.layout.width
+import androidx.glance.material3.ColorProviders
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
@@ -53,6 +63,7 @@ import kotlinx.coroutines.withContext
 import java.net.URL
 
 class Glance : GlanceAppWidget() {
+    @RequiresApi(Build.VERSION_CODES.S)
     @SuppressLint("RestrictedApi")
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent {
@@ -71,7 +82,6 @@ class Glance : GlanceAppWidget() {
                     }
                 }
             }
-
             Column(
                 modifier = GlanceModifier.fillMaxSize()
                     .background(MaterialTheme.colorScheme.secondaryContainer),
@@ -150,7 +160,6 @@ class Glance : GlanceAppWidget() {
                         }
                     }
                 }
-
             }
         }
     }

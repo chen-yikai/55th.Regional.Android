@@ -1,5 +1,10 @@
 package com.example.a55thandroid
 
+import android.content.Intent
+import android.os.Build
+import androidx.compose.runtime.getValue
+import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
@@ -9,6 +14,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
@@ -20,13 +27,17 @@ import androidx.navigation.compose.rememberNavController
 import com.example.a55thandroid.screens.AlarmScreen
 import com.example.a55thandroid.screens.HomeScreen
 import com.example.a55thandroid.screens.PlayerScreen
+import com.example.a55thandroid.services.AlarmNotificationExtra
+import com.example.a55thandroid.services.PlaybackService
 
-val LocaleNavController = compositionLocalOf<NavController> { error("error") }
+val LocalNavController = compositionLocalOf<NavController> { error("LocalNavController error") }
+val LocalIntent = compositionLocalOf<Intent> { error("LocalIntentSoundId error") }
 
 data class NavScreen(val route: String, val label: String, val icon: Int)
 
+@RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 @Composable
-fun EntryComposable() {
+fun EntryComposable(intent: Intent) {
     val navController = rememberNavController()
     val currentBackStackEntry = navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry.value?.destination?.route
@@ -36,7 +47,20 @@ fun EntryComposable() {
         NavScreen(Screens.Alarm.name, "提醒", R.drawable.alarm)
     )
 
-    CompositionLocalProvider(LocaleNavController provides navController) {
+    CompositionLocalProvider(
+        LocalNavController provides navController,
+        LocalIntent provides intent
+    ) {
+        val player by PlaybackService.playerState.collectAsState()
+
+        LaunchedEffect(player.ready) {
+            if (player.ready) {
+                val id = intent.getIntExtra(AlarmNotificationExtra.SoundId.name, -1)
+                Log.i("EntryComposable", "intent: $id")
+                PlaybackService.setIndex(id)
+                if (id != -1) navController.navigate(Screens.Player.name)
+            }
+        }
         Scaffold(bottomBar = {
             if (currentRoute != Screens.Player.name)
                 NavigationBar {

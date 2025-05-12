@@ -39,7 +39,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.a55thandroid.LocaleNavController
+import com.example.a55thandroid.LocalNavController
 import com.example.a55thandroid.services.PlaybackService
 import com.example.a55thandroid.R
 import com.example.a55thandroid.Screens
@@ -53,7 +53,7 @@ import kotlinx.coroutines.launch
 fun HomeScreen() {
     var showSortMenu by remember { mutableStateOf(false) }
     val player by PlaybackService.Companion.playerState.collectAsState()
-    val nav = LocaleNavController.current
+    val nav = LocalNavController.current
     val scope = rememberCoroutineScope()
     var searchTextField by remember { mutableStateOf("") }
     val soundList = remember { mutableStateListOf<Sounds>() }

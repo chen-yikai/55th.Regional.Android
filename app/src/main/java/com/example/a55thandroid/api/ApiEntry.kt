@@ -1,8 +1,13 @@
 package com.example.a55thandroid.api
 
+import android.content.Context
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import com.example.a55thandroid.api.schema.Alarm
 import com.example.a55thandroid.api.schema.Sounds
+import com.example.a55thandroid.services.App
+import com.example.a55thandroid.services.updateLocalAlarm
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
@@ -12,8 +17,8 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import kotlin.jvm.java
 
-//const val host = "http://10.0.2.2:3000"
-const val host = "https://skills-music-api-v3.eliaschen.dev"
+const val host = "http://10.0.2.2:3000"
+//const val host = "https://skills-music-api-v3.eliaschen.dev"
 const val apiKey = "kitty-secret-key"
 
 val client = OkHttpClient()
@@ -47,30 +52,51 @@ suspend fun fetchMusicList(search: String = "", sort: String = ""): List<Sounds>
     }
 }
 
-suspend fun fetchAlarm(): List<Alarm> {
+@RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+suspend fun fetchAlarm(alarmUpdate: Boolean = true): List<Alarm> {
+    val context = App.getAppContext()
+
     return withContext(Dispatchers.IO) {
         val req = Request.Builder()
             .url("$host/alarms")
             .addHeader("X-API-Key", apiKey)
             .build()
 
-        client.newCall(req).execute().use { response ->
-            gson.fromJson(response.body?.string(), object : TypeToken<List<Alarm>>() {}.type)
-                ?: emptyList()
+        try {
+            client.newCall(req).execute().use { response ->
+                val res: List<Alarm> = gson.fromJson(
+                    response.body?.string(),
+                    object : TypeToken<List<Alarm>>() {}.type
+                )
+                res
+            }
+        } catch (e: Exception) {
+            Log.e("fetchAlarm", "Error fetching alarm list", e)
+            return@withContext emptyList()
+        } finally {
+            if (alarmUpdate) updateLocalAlarm(context)
         }
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 suspend fun toggleAlarm(id: Int) {
+    val context = App.getAppContext()
     withContext(Dispatchers.IO) {
         val req = Request.Builder().patch("".toRequestBody())
             .addHeader("X-API-Key", apiKey)
             .url("$host/alarms/${id}/toggle").build()
-        client.newCall(req).execute()
+        try {
+            client.newCall(req).execute()
+        } catch (e: Exception) {
+            Log.e("toggleAlarm", "Error fetching alarm list", e)
+        } finally {
+            updateLocalAlarm(context)
+        }
     }
 }
 
-
+@RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 suspend fun updateAlarm(
     id: Int,
     soundId: Int,
@@ -79,8 +105,8 @@ suspend fun updateAlarm(
     isActive: Boolean
 ) {
     withContext(Dispatchers.IO) {
+        val context = App.getAppContext()
         val now = alarmTime
-
         val json = gson.toJson(
             mapOf(
                 "id" to id,
@@ -93,31 +119,45 @@ suspend fun updateAlarm(
                 "updatedAt" to now
             )
         )
-
-        Log.i("updateAlarm", "json: $json")
-
+//        Log.i("updateAlarm", "json: $json")
         val req = Request.Builder()
             .url("$host/alarms/$id")
             .put(json.toRequestBody())
             .addHeader("X-API-Key", apiKey)
             .build()
 
-        client.newCall(req).execute()
+        try {
+            client.newCall(req).execute()
+        } catch (e: Exception) {
+            Log.e("updateAlarm", "Error fetching alarm list", e)
+        } finally {
+            updateLocalAlarm(context)
+        }
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 suspend fun deleteAlarm(id: Int) {
+    val context = App.getAppContext()
     withContext(Dispatchers.IO) {
         val req = Request.Builder()
             .delete()
             .url("$host/alarms/$id")
             .addHeader("X-API-Key", apiKey)
             .build()
-        client.newCall(req).execute()
+        try {
+            client.newCall(req).execute()
+        } catch (e: Exception) {
+            Log.e("deleteAlarm", "Error fetching alarm list", e)
+        } finally {
+            updateLocalAlarm(context)
+        }
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 suspend fun createAlarm(soundId: Int, soundName: String, alarmTime: String) {
+    val context = App.getAppContext()
     withContext(Dispatchers.IO) {
         val json = gson.toJson(
             mapOf(
@@ -133,6 +173,12 @@ suspend fun createAlarm(soundId: Int, soundName: String, alarmTime: String) {
             .url("$host/alarms")
             .build()
 
-        client.newCall(req).execute()
+        try {
+            client.newCall(req).execute()
+        } catch (e: Exception) {
+            Log.e("createAlarm", "Error fetching alarm list", e)
+        } finally {
+            updateLocalAlarm(context)
+        }
     }
 }

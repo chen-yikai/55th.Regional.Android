@@ -25,7 +25,9 @@ data class Alarm(
         }
 
         val (hour, minutes) = isoToHourAndSecond(alarmTime)
-        return String.format("%02d:%02d", hour, minutes)
+        val amPm = if (hour < 12) "AM" else "PM"
+        val hour12 = if (hour > 12) hour - 12 else hour
+        return String.format("%02d:%02d %s", hour12, minutes, amPm)
     }
 }
 

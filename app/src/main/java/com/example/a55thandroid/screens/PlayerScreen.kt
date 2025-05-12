@@ -1,6 +1,5 @@
 package com.example.a55thandroid.screens
 
-import android.app.Dialog
 import android.content.Context
 import android.media.AudioManager
 import android.os.Build
@@ -66,7 +65,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import com.example.a55thandroid.LocaleNavController
+import com.example.a55thandroid.LocalNavController
 import com.example.a55thandroid.NetworkImage
 import com.example.a55thandroid.services.PlaybackService
 import com.example.a55thandroid.R
@@ -80,13 +79,14 @@ import com.example.a55thandroid.api.schema.hourAndMinuteToIso
 import com.example.a55thandroid.api.toggleAlarm
 import com.example.a55thandroid.api.updateAlarm
 import com.example.a55thandroid.services.durationFormatter
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 
-@RequiresApi(Build.VERSION_CODES.O)
+@RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 @Composable
 fun PlayerScreen() {
-    val nav = LocaleNavController.current
+    val nav = LocalNavController.current
     val player by PlaybackService.playerState.collectAsState()
 
     Column(
@@ -138,11 +138,10 @@ fun SystemVolumeController() {
     val context = LocalContext.current
     val audioManager = remember { context.getSystemService(Context.AUDIO_SERVICE) as AudioManager }
     val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+    // NOTE: current system music volume dividing by system max volume to get a float between 0f to 1f
     var volume by remember {
         mutableFloatStateOf(
-            maxVolume / audioManager.getStreamVolume(
-                AudioManager.STREAM_MUSIC
-            ).toFloat()
+            audioManager.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat() / maxVolume
         )
     }
 
@@ -161,7 +160,7 @@ fun SystemVolumeController() {
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
+@RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateAlarmDialog(dismiss: () -> Unit, update: () -> Unit) {
@@ -202,7 +201,7 @@ fun CreateAlarmDialog(dismiss: () -> Unit, update: () -> Unit) {
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-@RequiresApi(Build.VERSION_CODES.O)
+@RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
 @Composable
 fun AlarmController() {
     var alarmList = remember { mutableStateListOf<Alarm>() }
@@ -210,8 +209,11 @@ fun AlarmController() {
     var showPicker by remember { mutableStateOf(false) }
     var timePickerState = rememberTimePickerState()
     val player by PlaybackService.playerState.collectAsState()
+    val context = LocalContext.current
 
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     suspend fun getAlarmsList() {
+        delay(500L)
         alarmList.clear()
         alarmList.addAll(fetchAlarm())
     }
@@ -226,36 +228,36 @@ fun AlarmController() {
 
 
     Column {
-        AnimatedVisibility(alarmList.isNotEmpty()) {
-            Card {
-                var showCreateAlarmDialog by remember { mutableStateOf(false) }
+        Card {
+            var showCreateAlarmDialog by remember { mutableStateOf(false) }
 
-                if (showCreateAlarmDialog) CreateAlarmDialog(
-                    { showCreateAlarmDialog = false },
-                    {
-                        scope.launch {
-                            getAlarmsList()
-                        }
-                    })
-                Column(
-                    Modifier
-                        .heightIn(max = 80.dp)
-                        .padding(horizontal = 10.dp)
+            if (showCreateAlarmDialog) CreateAlarmDialog(
+                { showCreateAlarmDialog = false },
+                {
+                    scope.launch {
+                        getAlarmsList()
+                    }
+                })
+            Column(
+                Modifier
+                    .padding(horizontal = 10.dp)
+            ) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("提醒通知")
-                        IconButton(onClick = {
-                            showCreateAlarmDialog = true
-                        }) {
-                            Icon(Icons.Default.Add, contentDescription = null)
-                        }
+                    Text("提醒通知")
+                    IconButton(onClick = {
+                        showCreateAlarmDialog = true
+                    }) {
+                        Icon(Icons.Default.Add, contentDescription = null)
                     }
                 }
-                LazyColumn(Modifier) {
+            }
+
+            AnimatedVisibility(alarmList.isNotEmpty()) {
+                LazyColumn(Modifier.heightIn(max = 100.dp)) {
                     items(alarmList) { items ->
                         var checked by remember { mutableStateOf(items.isActive()) }
                         var updateId by remember { mutableIntStateOf(0) }

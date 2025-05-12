@@ -40,6 +40,7 @@ data class PlayerState(
     var repeatMode: Int = Player.REPEAT_MODE_OFF,
     var metadata: MediaMetadata = MediaMetadata.Builder().build(),
     var isStarted: Boolean = false,
+    var ready: Boolean = false
 ) {
     fun getDuration(): Float = if (duration > 0) duration.toFloat() else 0f
 }
@@ -64,12 +65,16 @@ class PlaybackService : MediaSessionService() {
         var playerInstance: ExoPlayer? = null
 
         fun setIndex(index: Int) {
-            playerInstance?.apply {
-                if (playerInstance?.currentMediaItemIndex != index) {
-                    seekTo(index, 0L)
+            try {
+                playerInstance?.apply {
+                    if (playerInstance?.currentMediaItemIndex != index) {
+                        seekTo(index, 0L)
+                    }
+                    prepare()
+                    play()
                 }
-                prepare()
-                play()
+            } catch (e: Exception) {
+                Log.i("PlayerService setIndex", "Error: $e")
             }
         }
 
@@ -87,18 +92,26 @@ class PlaybackService : MediaSessionService() {
     }
 
     private fun initSounds() {
-        serviceScope.launch {
-            fetchMusicList().forEach {
-                player.addMediaItem(
-                    MediaItem.Builder().setUri(host + it.audio.url)
-                        .setMediaId(it.id.toString()).setMediaMetadata(
-                            MediaMetadata.Builder().setTitle(it.name)
-                                .setArtist(it.metadata.author)
-                                .setArtworkUri((host + it.cover.url).toUri())
-                                .build()
-                        ).build()
-                )
+        try {
+            serviceScope.launch {
+                val sounds = fetchMusicList()
+                if (sounds.isNotEmpty())
+                    sounds.forEach {
+                        player.addMediaItem(
+                            MediaItem.Builder().setUri(host + it.audio.url)
+                                .setMediaId(it.id.toString()).setMediaMetadata(
+                                    MediaMetadata.Builder().setTitle(it.name)
+                                        .setArtist(it.metadata.author)
+                                        .setArtworkUri((host + it.cover.url).toUri())
+                                        .build()
+                                ).build()
+                        )
+                    }
             }
+        } catch (e: Exception) {
+            Log.i("PlaybackService", "initSounds: ${e.message}")
+        } finally {
+            _playerState.update { it.copy(ready = true) }
         }
     }
 
@@ -184,8 +197,7 @@ class PlaybackService : MediaSessionService() {
     private fun createNotification(): Notification {
         return NotificationCompat.Builder(this, player_channel)
             .setSmallIcon(R.drawable.ic_media_play)
-            .setContentTitle("Media Channel Start")
-            .setContentText("Running...")
+            .setContentTitle("背景播放服務運行中")
             .setOngoing(true)
             .build()
     }
