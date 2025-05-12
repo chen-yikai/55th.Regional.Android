@@ -17,8 +17,8 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import kotlin.jvm.java
 
-const val host = "http://10.0.2.2:3000"
-//const val host = "https://skills-music-api-v3.eliaschen.dev"
+//const val host = "http://10.0.2.2:3000"
+const val host = "https://skills-music-api-v3.eliaschen.dev"
 const val apiKey = "kitty-secret-key"
 
 val client = OkHttpClient()

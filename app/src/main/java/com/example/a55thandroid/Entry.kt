@@ -57,8 +57,10 @@ fun EntryComposable(intent: Intent) {
             if (player.ready) {
                 val id = intent.getIntExtra(AlarmNotificationExtra.SoundId.name, -1)
                 Log.i("EntryComposable", "intent: $id")
-                PlaybackService.setIndex(id)
-                if (id != -1) navController.navigate(Screens.Player.name)
+                if (id != -1) {
+                    PlaybackService.setIndex(id - 1)
+                    navController.navigate(Screens.Player.name)
+                }
             }
         }
         Scaffold(bottomBar = {
