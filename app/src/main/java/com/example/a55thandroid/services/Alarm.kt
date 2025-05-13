@@ -47,7 +47,12 @@ class AlarmReceiver : BroadcastReceiver() {
             putExtra(AlarmNotificationExtra.SoundId.name, soundId)
         }
         val pendingIntent =
-            PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+            PendingIntent.getActivity(
+                context,
+                0,
+                intent,
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+            )
 
         val notification =
             NotificationCompat.Builder(context, alarm_channel)
@@ -113,7 +118,7 @@ fun setSoundAlarm(
         context,
         notificationId,
         intent,
-        PendingIntent.FLAG_IMMUTABLE
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
     )
 
     alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)

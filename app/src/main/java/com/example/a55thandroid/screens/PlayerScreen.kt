@@ -376,12 +376,13 @@ fun PlayerController() {
             modifier = Modifier
                 .border(2.dp, Color.Gray, CircleShape)
                 .shadow(5.dp, CircleShape)
-                .background(Color.White)
+                .background(MaterialTheme.colorScheme.secondaryContainer)
                 .size(60.dp)
         ) {
             Icon(
                 painter = painterResource(if (!player.isPlaying) R.drawable.play else R.drawable.pause),
                 modifier = Modifier.size(40.dp),
+                tint = MaterialTheme.colorScheme.secondary,
                 contentDescription = ""
             )
         }

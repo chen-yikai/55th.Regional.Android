@@ -84,15 +84,17 @@ class Glance : GlanceAppWidget() {
             }
             Column(
                 modifier = GlanceModifier.fillMaxSize()
-                    .background(MaterialTheme.colorScheme.secondaryContainer),
+                    .background(MaterialTheme.colorScheme.background),
             ) {
                 if (!player.isStarted) {
                     Row(
                         GlanceModifier.fillMaxSize(),
                         horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text("No Sound Currently is Playing")
+                        Text(
+                            "No Sound Currently is Playing",
+                        )
                     }
                 } else {
                     Row(
@@ -137,8 +139,9 @@ class Glance : GlanceAppWidget() {
                             ) {
                                 CircleIconButton(
                                     imageProvider = ImageProvider(resId = R.drawable.prev),
-                                    backgroundColor = ColorProvider(MaterialTheme.colorScheme.secondaryContainer),
                                     contentDescription = "",
+                                    backgroundColor = ColorProvider(MaterialTheme.colorScheme.background),
+                                    contentColor = ColorProvider(MaterialTheme.colorScheme.secondary),
                                     onClick = { PlaybackService.prev() },
                                 )
                                 Spacer(GlanceModifier.defaultWeight())
@@ -152,8 +155,9 @@ class Glance : GlanceAppWidget() {
                                 Spacer(GlanceModifier.defaultWeight())
                                 CircleIconButton(
                                     imageProvider = ImageProvider(resId = R.drawable.next),
-                                    backgroundColor = ColorProvider(MaterialTheme.colorScheme.secondaryContainer),
                                     contentDescription = "",
+                                    backgroundColor = ColorProvider(MaterialTheme.colorScheme.background),
+                                    contentColor = ColorProvider(MaterialTheme.colorScheme.secondary),
                                     onClick = { PlaybackService.next() },
                                 )
                             }
