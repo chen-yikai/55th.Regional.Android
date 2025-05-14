@@ -120,7 +120,9 @@ fun PlayerScreen() {
                 TitleText(player.metadata.title.toString())
                 Text(player.metadata.artist.toString(), color = Color.Gray)
                 Spacer(Modifier.height(11.dp))
-                PlayerSeekController()
+                key(player.currentIndex) {
+                    PlayerSeekController()
+                }
                 Spacer(Modifier.height(20.dp))
                 PlayerController()
                 Spacer(Modifier.height(30.dp))
@@ -398,15 +400,24 @@ fun PlayerController() {
 @Composable
 fun PlayerSeekController() {
     val player by PlaybackService.playerState.collectAsState()
+    var currentPosition by remember { mutableFloatStateOf(0f) }
+
+    LaunchedEffect(Unit) {
+        currentPosition = player.currentPosition.toFloat()
+    }
+
+    LaunchedEffect(currentPosition) {
+        PlaybackService.seekTo(currentPosition)
+    }
 
     Column(Modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(durationFormatter(player.currentPosition))
-            Text(durationFormatter(player.duration))
+            Text(durationFormatter(player.getDuration().toLong()))
         }
         Spacer(Modifier.height(10.dp))
-        Slider(player.currentPosition.toFloat(), onValueChange = {
-            PlaybackService.seekTo(it)
+        Slider(currentPosition, onValueChange = {
+            currentPosition = it
         }, valueRange = 0f..player.getDuration())
     }
 }

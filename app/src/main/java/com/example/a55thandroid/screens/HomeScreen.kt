@@ -65,7 +65,7 @@ fun HomeScreen() {
         soundList.clear()
         scope.launch {
             try {
-                val response = fetchMusicList(sort = "asc")
+                val response = fetchMusicList(sort = sort)
                 soundList.addAll(response)
             } catch (e: Exception) {
                 Log.e("HomeScreen", "Error fetching music list", e)
@@ -174,7 +174,7 @@ fun HomeScreen() {
                                 contentDescription = ""
                             )
                             Spacer(Modifier.width(5.dp))
-                            item.metadata.lastUpdated.let { text ->
+                            item.metadata.publishDate.let { text ->
                                 Text(text.replace("-", "."))
                             }
                         }

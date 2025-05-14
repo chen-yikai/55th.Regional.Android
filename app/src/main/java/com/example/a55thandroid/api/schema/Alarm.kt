@@ -1,5 +1,6 @@
 package com.example.a55thandroid.api.schema
 
+import android.annotation.SuppressLint
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
@@ -17,6 +18,7 @@ data class Alarm(
 ) {
     fun isActive() = isActive == 1
 
+    @SuppressLint("DefaultLocale")
     @RequiresApi(Build.VERSION_CODES.O)
     fun time(): String {
         fun isoToHourAndSecond(isoTime: String): Pair<Int, Int> {
