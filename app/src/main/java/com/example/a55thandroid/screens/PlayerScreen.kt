@@ -401,13 +401,15 @@ fun PlayerController() {
 fun PlayerSeekController() {
     val player by PlaybackService.playerState.collectAsState()
     var currentPosition by remember { mutableFloatStateOf(0f) }
+    var init by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(player.currentPosition) {
+        init = false
         currentPosition = player.currentPosition.toFloat()
     }
 
     LaunchedEffect(currentPosition) {
-        PlaybackService.seekTo(currentPosition)
+        if (init) PlaybackService.seekTo(currentPosition)
     }
 
     Column(Modifier.fillMaxWidth()) {
@@ -417,6 +419,7 @@ fun PlayerSeekController() {
         }
         Spacer(Modifier.height(10.dp))
         Slider(currentPosition, onValueChange = {
+            init = true
             currentPosition = it
         }, valueRange = 0f..player.getDuration())
     }

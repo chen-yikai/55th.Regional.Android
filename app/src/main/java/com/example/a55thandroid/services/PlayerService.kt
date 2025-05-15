@@ -123,6 +123,7 @@ class PlaybackService : MediaSessionService() {
         initSounds()
         playerInstance = player
         player.addListener(object : Player.Listener {
+
             override fun onEvents(player: Player, events: Player.Events) {
                 _playerState.value = _playerState.value.copy(
                     currentIndex = player.currentMediaItemIndex,
